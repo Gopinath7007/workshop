@@ -1,10 +1,45 @@
-# Supabase
+# Supabase setup (required for DB writes)
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. Enable **Email** auth. Optionally enable **Google**.
-3. Run `supabase/migrations/001_profiles.sql` in the SQL editor.
-4. Copy the project URL and anon key into `.env`.
+Project: `https://pvpnaxjaacoiyyuicjzp.supabase.co`
 
-The mobile client uses the anon key only. Row Level Security on `profiles` keeps rows private to `auth.uid()`.
+## Apply schema (one step)
 
-Do not commit service-role keys. This scaffold never ships one.
+1. Open Supabase → **SQL Editor** → New query  
+2. Open and paste the entire file:
+
+`supabase/migrations/APPLY_ALL.sql`
+
+3. Click **Run** (may take ~10–30s)
+
+This applies migrations `001`–`014` (tenancy, RBAC, jobs, billing, inventory RLS, bootstrap).
+
+## App env
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://pvpnaxjaacoiyyuicjzp.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+EXPO_PUBLIC_DATA_MODE=supabase
+```
+
+Restart Expo after changing `.env`.
+
+## What happens on first login
+
+`bootstrap_workshop` creates:
+- Organization
+- Head Office branch  
+- `owner` role for you
+
+Then customers / vehicles / job cards / estimates / invoices / parts write to Postgres.
+
+Check **Table Editor** after creating a job card.
+
+## Force local again
+
+```env
+EXPO_PUBLIC_DATA_MODE=local
+```
+
+## Security
+
+Use **anon** key only in the app. Never ship `service_role`.

@@ -1,8 +1,8 @@
-import { Link } from 'expo-router';
+﻿import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text } from 'react-native';
 import { isValidEmail, useAuth } from '../../src/auth';
-import { isGoogleAuthConfigured, isSupabaseConfigured } from '../../src/config';
+import { isSupabaseConfigured } from '../../src/config';
 import { Button } from '../../src/ui/Button';
 import { Screen } from '../../src/ui/Screen';
 import { TextField } from '../../src/ui/TextField';
@@ -49,9 +49,23 @@ export default function LoginScreen() {
     }
   };
 
+  const google = async () => {
+    setBusy(true);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      Alert.alert(
+        'Google sign-in failed',
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Screen>
-      <Text style={styles.kicker}>Auth Scaffold</Text>
+      <Text style={styles.kicker}>Workshop</Text>
       <Text style={styles.title}>Sign in</Text>
       {!isSupabaseConfigured() ? (
         <Text style={styles.warn}>Add Supabase keys to .env to enable sign-in.</Text>
@@ -71,11 +85,12 @@ export default function LoginScreen() {
         secureTextEntry
       />
       <Button label="Sign in" onPress={() => void submit()} loading={busy} disabled={!email || !password} />
-      {isGoogleAuthConfigured() ? (
+      {isSupabaseConfigured() ? (
         <Button
           label="Continue with Google"
           variant="ghost"
-          onPress={() => void signInWithGoogle()}
+          onPress={() => void google()}
+          loading={busy}
           disabled={!googleReady}
         />
       ) : null}

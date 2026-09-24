@@ -1,8 +1,8 @@
-import { Link, useRouter } from 'expo-router';
+﻿import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
-import { isGoogleAuthConfigured } from '../../src/config';
 import { isStrongPassword, isValidEmail, passwordRules, useAuth } from '../../src/auth';
+import { isSupabaseConfigured } from '../../src/config';
 import { Button } from '../../src/ui/Button';
 import { Screen } from '../../src/ui/Screen';
 import { TextField } from '../../src/ui/TextField';
@@ -41,6 +41,20 @@ export default function SignupScreen() {
     }
   };
 
+  const google = async () => {
+    setBusy(true);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      Alert.alert(
+        'Google sign-in failed',
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Screen>
       <Text style={styles.title}>Create account</Text>
@@ -65,11 +79,12 @@ export default function SignupScreen() {
         ))}
       </View>
       <Button label="Create account" onPress={() => void submit()} loading={busy} />
-      {isGoogleAuthConfigured() ? (
+      {isSupabaseConfigured() ? (
         <Button
           label="Continue with Google"
           variant="ghost"
-          onPress={() => void signInWithGoogle()}
+          onPress={() => void google()}
+          loading={busy}
           disabled={!googleReady}
         />
       ) : null}

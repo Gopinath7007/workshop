@@ -1,16 +1,7 @@
 import { isStrongPassword, passwordRules } from '../src/auth/password';
-import {
-  bannerAdUnitId,
-  isGoogleAuthConfigured,
-  isSupabaseConfigured,
-  PUBLIC_ENV_KEYS,
-} from '../src/config';
+import { isGoogleAuthConfigured, isSupabaseConfigured, PUBLIC_ENV_KEYS } from '../src/config';
 
 describe('app config', () => {
-  it('defaults ads to Google test units', () => {
-    expect(bannerAdUnitId()).toContain('ca-app-pub-3940256099942544');
-  });
-
   it('treats missing keys as unconfigured', () => {
     expect(isSupabaseConfigured()).toBe(false);
     expect(isGoogleAuthConfigured()).toBe(false);
@@ -21,9 +12,10 @@ describe('app config', () => {
       expect.arrayContaining([
         'EXPO_PUBLIC_SUPABASE_URL',
         'EXPO_PUBLIC_SUPABASE_ANON_KEY',
-        'EXPO_PUBLIC_ADMOB_USE_TEST',
+        'EXPO_PUBLIC_AUTH_REDIRECT_URL',
       ]),
     );
+    expect(PUBLIC_ENV_KEYS).not.toEqual(expect.arrayContaining(['EXPO_PUBLIC_ADMOB_USE_TEST']));
   });
 });
 

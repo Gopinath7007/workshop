@@ -1,9 +1,10 @@
 import { makeRedirectUri } from 'expo-auth-session';
 import * as GoogleAuth from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
+import * as Linking from 'expo-linking';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
-import { appConfig, isGoogleAuthConfigured } from '../config';
+import { appConfig, isGoogleAuthConfigured, isSupabaseConfigured } from '../config';
 import * as auth from './authService';
 import type { AppUser } from './types';
 
@@ -21,6 +22,11 @@ type AuthContextValue = {
   signInWithGoogle: () => Promise<void>;
 };
 
+type GoogleBridge = {
+  ready: boolean;
+  signInWithGoogle: () => Promise<AppUser | null>;
+};
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function useAuth(): AuthContextValue {
@@ -29,29 +35,16 @@ export function useAuth(): AuthContextValue {
   return value;
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+function AuthSessionProvider({
+  children,
+  google,
+}: {
+  children: ReactNode;
+  google?: GoogleBridge;
+}) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const isExpoGo = Constants.appOwnership === 'expo';
-
-  const redirectUri =
-    Platform.OS === 'web'
-      ? auth.googleRedirectUri()
-      : makeRedirectUri({
-          scheme: appConfig.scheme,
-          path: 'oauthredirect',
-        });
-
-  const [request, response, promptAsync] = GoogleAuth.useIdTokenAuthRequest({
-    clientId: appConfig.google.webClientId || undefined,
-    webClientId: appConfig.google.webClientId || undefined,
-    iosClientId: appConfig.google.iosClientId || appConfig.google.webClientId || undefined,
-    androidClientId:
-      isExpoGo || Platform.OS === 'web'
-        ? appConfig.google.androidClientId || undefined
-        : undefined,
-    redirectUri,
-  });
+  const googleAvailable = Boolean(google?.ready) || isSupabaseConfigured();
 
   useEffect(() => {
     let active = true;
@@ -74,25 +67,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Complete OAuth redirect (web hash / deep link) back into a Supabase session.
   useEffect(() => {
-    if (!response) return;
-    if (response.type === 'error') {
-      console.warn('[Auth] Google sign-in failed', response.error);
-      return;
+    if (!isSupabaseConfigured()) return;
+
+    const handleUrl = (url: string | null) => {
+      if (!url) return;
+      void auth.createSessionFromUrl(url).then((next) => {
+        if (next) setUser(next);
+      }).catch((error) => {
+        console.warn('[Auth] OAuth redirect failed', error);
+      });
+    };
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      handleUrl(window.location.href);
     }
-    if (response.type !== 'success') return;
-    const idToken = response.params.id_token;
-    if (!idToken) return;
-    void auth.signInWithGoogleIdToken(idToken).then(setUser).catch((error) => {
-      console.warn('[Auth] Google token exchange failed', error);
-    });
-  }, [response]);
+
+    const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+    void Linking.getInitialURL().then(handleUrl);
+    return () => sub.remove();
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       loading,
-      googleReady: Boolean(request && isGoogleAuthConfigured()),
+      googleReady: googleAvailable,
       signIn: async (email, password) => {
         setUser(await auth.signInWithEmail(email, password));
       },
@@ -108,17 +109,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       updatePassword: auth.updatePassword,
       signInWithGoogle: async () => {
-        if (!isGoogleAuthConfigured()) {
-          throw new Error('Google sign-in is not configured.');
+        if (google?.ready) {
+          const next = await google.signInWithGoogle();
+          if (next) setUser(next);
+          return;
         }
-        const result = await promptAsync();
-        if (result.type === 'success' && result.params.id_token) {
-          setUser(await auth.signInWithGoogleIdToken(result.params.id_token));
+        if (!isSupabaseConfigured()) {
+          throw new Error('Supabase is not configured.');
         }
+        const next = await auth.signInWithGoogleOAuth();
+        if (next) setUser(next);
       },
     }),
-    [loading, promptAsync, request, user],
+    [google, googleAvailable, loading, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+/**
+ * Native Google ID-token flow — only mounts when EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is set.
+ */
+function GoogleIdTokenAuthProvider({ children }: { children: ReactNode }) {
+  const isExpoGo = Constants.appOwnership === 'expo';
+  const webClientId = appConfig.google.webClientId;
+
+  const redirectUri =
+    Platform.OS === 'web'
+      ? auth.googleRedirectUri()
+      : makeRedirectUri({
+          scheme: appConfig.scheme,
+          path: 'oauthredirect',
+        });
+
+  const [request, , promptAsync] = GoogleAuth.useIdTokenAuthRequest({
+    clientId: webClientId,
+    webClientId,
+    iosClientId: appConfig.google.iosClientId || webClientId,
+    androidClientId:
+      isExpoGo || Platform.OS === 'web'
+        ? appConfig.google.androidClientId || undefined
+        : undefined,
+    redirectUri,
+  });
+
+  const google = useMemo<GoogleBridge>(
+    () => ({
+      ready: Boolean(request),
+      signInWithGoogle: async () => {
+        const result = await promptAsync();
+        if (result.type !== 'success' || !result.params.id_token) return null;
+        return auth.signInWithGoogleIdToken(result.params.id_token);
+      },
+    }),
+    [promptAsync, request],
+  );
+
+  return <AuthSessionProvider google={google}>{children}</AuthSessionProvider>;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  if (isGoogleAuthConfigured()) {
+    return <GoogleIdTokenAuthProvider>{children}</GoogleIdTokenAuthProvider>;
+  }
+  return <AuthSessionProvider>{children}</AuthSessionProvider>;
 }

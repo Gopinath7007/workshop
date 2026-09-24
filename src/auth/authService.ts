@@ -1,3 +1,5 @@
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
+import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import { appConfig, isGoogleAuthConfigured } from '../config';
@@ -11,7 +13,9 @@ WebBrowser.maybeCompleteAuthSession();
 function clientOrThrow() {
   const supabase = getSupabase();
   if (!supabase) {
-    throw new Error('Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+    throw new Error(
+      'Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.',
+    );
   }
   return supabase;
 }
@@ -22,6 +26,31 @@ function requireEmail(email: string): string {
     throw new Error('Enter a valid email address.');
   }
   return normalized;
+}
+
+export function googleRedirectUri(): string {
+  if (appConfig.auth.emailRedirectTo) return appConfig.auth.emailRedirectTo;
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return Linking.createURL('/');
+}
+
+/** Create / restore a session from an OAuth redirect URL (web + native). */
+export async function createSessionFromUrl(url: string): Promise<AppUser | null> {
+  const { params, errorCode } = QueryParams.getQueryParams(url);
+  if (errorCode) throw new Error(errorCode);
+
+  const access_token = params.access_token;
+  const refresh_token = params.refresh_token;
+  if (!access_token) return null;
+
+  const { data, error } = await clientOrThrow().auth.setSession({
+    access_token,
+    refresh_token: refresh_token ?? '',
+  });
+  if (error) throw new Error(authMessage(error, 'Could not complete Google sign-in'));
+  return data.user ? mapSupabaseUser(data.user) : null;
 }
 
 export async function getCurrentUser(): Promise<AppUser | null> {
@@ -122,9 +151,38 @@ export async function signInWithGoogleIdToken(idToken: string, nonce?: string): 
   return mapSupabaseUser(data.user);
 }
 
-export function googleRedirectUri(): string | undefined {
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return window.location.origin;
+/**
+ * Supabase-hosted Google OAuth (no Expo Google client ID required).
+ * Enable Google under Authentication → Providers in the Supabase dashboard.
+ */
+export async function signInWithGoogleOAuth(): Promise<AppUser | null> {
+  const supabase = clientOrThrow();
+  const redirectTo = googleRedirectUri();
+
+  if (Platform.OS === 'web') {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        queryParams: { access_type: 'offline', prompt: 'consent' },
+      },
+    });
+    if (error) throw new Error(authMessage(error, 'Google sign-in failed'));
+    return null;
   }
-  return undefined;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+      queryParams: { access_type: 'offline', prompt: 'consent' },
+    },
+  });
+  if (error) throw new Error(authMessage(error, 'Google sign-in failed'));
+  if (!data.url) throw new Error('Google sign-in failed');
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  if (result.type !== 'success' || !result.url) return null;
+  return createSessionFromUrl(result.url);
 }

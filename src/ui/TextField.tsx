@@ -1,6 +1,8 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, radius, space } from './theme';
 
+type KeyboardType = 'default' | 'email-address' | 'numeric' | 'phone-pad' | 'number-pad';
+
 export function TextField({
   label,
   value,
@@ -9,14 +11,18 @@ export function TextField({
   secureTextEntry,
   autoCapitalize = 'none',
   keyboardType,
+  multiline,
+  error,
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
   secureTextEntry?: boolean;
-  autoCapitalize?: 'none' | 'words' | 'sentences';
-  keyboardType?: 'default' | 'email-address';
+  autoCapitalize?: 'none' | 'words' | 'sentences' | 'characters';
+  keyboardType?: KeyboardType;
+  multiline?: boolean;
+  error?: string;
 }) {
   return (
     <View style={styles.wrap}>
@@ -30,8 +36,10 @@ export function TextField({
         autoCapitalize={autoCapitalize}
         autoCorrect={false}
         keyboardType={keyboardType}
-        style={styles.input}
+        multiline={multiline}
+        style={[styles.input, multiline && styles.multiline, error ? styles.inputError : null]}
       />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
 }
@@ -54,5 +62,17 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingHorizontal: space.md,
     fontSize: 16,
+  },
+  multiline: {
+    minHeight: 96,
+    paddingVertical: space.sm,
+    textAlignVertical: 'top',
+  },
+  inputError: {
+    borderColor: colors.danger,
+  },
+  error: {
+    color: colors.danger,
+    fontSize: 12,
   },
 });

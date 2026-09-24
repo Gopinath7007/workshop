@@ -1,20 +1,21 @@
 {
   "expo": {
-    "name": "Auth Scaffold",
-    "slug": "expo-supabase-auth-scaffold",
+    "name": "Workshop",
+    "slug": "workshop",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "expoauth",
+    "scheme": "workshop",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.authscaffold",
+      "bundleIdentifier": "com.workshop.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "GADApplicationIdentifier": "ca-app-pub-3940256099942544~1458002511"
+        "NSCameraUsageDescription": "Scan vehicle number plates for workshop job cards.",
+        "NSPhotoLibraryUsageDescription": "Select number plate photos for OCR."
       }
     },
     "android": {
@@ -22,10 +23,8 @@
         "backgroundColor": "#0F172A",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
-      "package": "com.example.authscaffold",
-      "permissions": [
-        "com.google.android.gms.permission.AD_ID"
-      ]
+      "package": "com.workshop.app",
+      "permissions": ["CAMERA", "READ_MEDIA_IMAGES"]
     },
     "web": {
       "output": "static",
@@ -43,22 +42,20 @@
         }
       ],
       "@react-native-google-signin/google-signin",
+      "expo-web-browser",
       [
-        "react-native-google-mobile-ads",
+        "expo-camera",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+          "cameraPermission": "Allow Workshop to scan vehicle number plates."
         }
       ],
       [
-        "expo-build-properties",
+        "expo-image-picker",
         {
-          "android": {
-            "extraProguardRules": "-keep class com.google.android.gms.ads.** { *; }\n-keep class com.google.android.gms.auth.** { *; }\n-dontwarn com.google.android.gms.ads.**"
-          }
+          "photosPermission": "Allow Workshop to use plate photos for OCR.",
+          "cameraPermission": "Allow Workshop to scan vehicle number plates."
         }
-      ],
-      "expo-web-browser"
+      ]
     ],
     "experiments": {
       "typedRoutes": false
