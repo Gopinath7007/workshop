@@ -2,6 +2,7 @@ import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../../src/auth';
 import { useIsCustomerPortal, useSessionBootstrap } from '../../src/hooks/useSessionBootstrap';
+import { getDataMode } from '../../src/repositories';
 import { useSessionStore } from '../../src/store/sessionStore';
 import { colors } from '../../src/ui/theme';
 
@@ -9,9 +10,12 @@ export default function StaffLayout() {
   const { user, loading } = useAuth();
   const sessionReady = useSessionBootstrap();
   const roles = useSessionStore((s) => s.roles);
+  const organizationId = useSessionStore((s) => s.organizationId);
+  const needsOnboarding = useSessionStore((s) => s.needsOnboarding);
   const isCustomer = useIsCustomerPortal();
+  const dataMode = getDataMode();
 
-  if (loading || (user && (!sessionReady || roles.length === 0))) {
+  if (loading || (user && !sessionReady)) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}>
         <ActivityIndicator color={colors.accent} />
@@ -23,8 +27,16 @@ export default function StaffLayout() {
     return <Redirect href="/(auth)/login" />;
   }
 
+  if (dataMode === 'supabase' && (needsOnboarding || !organizationId)) {
+    return <Redirect href="/(onboarding)" />;
+  }
+
   if (isCustomer) {
     return <Redirect href="/(customer)" />;
+  }
+
+  if (roles.length === 0) {
+    return <Redirect href="/(onboarding)" />;
   }
 
   return (
@@ -54,6 +66,7 @@ export default function StaffLayout() {
       <Stack.Screen name="attendance/index" options={{ headerShown: true, title: 'Attendance' }} />
       <Stack.Screen name="payroll/index" options={{ headerShown: true, title: 'Payroll' }} />
       <Stack.Screen name="reports/index" options={{ headerShown: true, title: 'Reports' }} />
+      <Stack.Screen name="workshop/index" options={{ headerShown: true, title: 'Workshop' }} />
       <Stack.Screen name="profile" options={{ headerShown: true, title: 'Profile' }} />
     </Stack>
   );

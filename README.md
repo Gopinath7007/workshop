@@ -46,11 +46,27 @@ src/
 supabase/migrations/         Postgres schema + RLS + seed
 ```
 
+## Multi-tenant SaaS
+
+Sell one app to many workshops. Each customer workshop is an **organization**:
+
+| Layer | Isolation |
+|---|---|
+| Organization | Tenant (workshop business) |
+| Branch | Optional multi-location under one org |
+| user_roles | Staff membership + RBAC inside that org |
+| Postgres RLS | All business tables filtered by `organization_id` |
+
+**Onboarding:** first login → Register workshop **or** Join with invite code  
+**Staff invites:** More → Workshop → Generate invite code (`WK-…`)  
+**Data:** customers, vehicles, jobs, bills, inventory stay private per workshop
+
 ## Locked decisions
 
 | Topic | Choice |
 |---|---|
 | Backend | Supabase only (v1) |
+| Tenancy | Multi-org SaaS (RLS) |
 | First vertical slice | Job Card end-to-end |
 | State | Zustand + TanStack Query |
 | Ads | Removed |
@@ -67,9 +83,9 @@ supabase/migrations/         Postgres schema + RLS + seed
 
 1. Paste & run `supabase/migrations/APPLY_ALL.sql` in the SQL Editor  
 2. Ensure `.env` has anon key + `EXPO_PUBLIC_DATA_MODE=supabase`  
-3. Sign in → create a job card → verify rows in Table Editor  
+3. Sign in → **Register workshop** (or join with invite) → create a job card → verify rows in Table Editor  
 
-More → shows **Data: Supabase Postgres** when connected.
+More → Workshop shows the active tenant and invite codes.
 
 Local AsyncStorage data (default `EXPO_PUBLIC_DATA_MODE=local`):
 

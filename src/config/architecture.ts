@@ -1,23 +1,29 @@
 import type { PermissionId, SystemRole } from '../types';
 
 /**
- * Phase 1 architecture snapshot for Workshop MMS (India-first, Supabase).
+ * Architecture snapshot for Workshop MMS (India-first, multi-tenant SaaS).
+ *
+ * Product model: sell one product to many workshops.
+ * Each workshop = organization tenant. Customers, vehicles, jobs, estimates,
+ * invoices, inventory, and HR rows are scoped by organization_id and enforced
+ * with Postgres RLS — Workshop A never sees Workshop B data.
  *
  * Decisions locked:
  * - Backend: Supabase (Auth + Postgres + Storage + Edge Functions later)
+ * - Tenancy: organizations → branches → user_roles (invite codes for staff)
  * - Market: India (GST, INR, UPI) — no Aadhaar fields
  * - State: Zustand (session/UI) + TanStack Query (server)
  * - Ads: removed
  * - First vertical slice: Job Card end-to-end
  *
  * Supabase project (dev): https://pvpnaxjaacoiyyuicjzp.supabase.co
- * Switch account later by changing EXPO_PUBLIC_SUPABASE_* only.
  */
 
 export const ARCHITECTURE = {
   market: 'IN',
   currency: 'INR',
   backend: 'supabase',
+  tenancy: 'multi_org_saas',
   firstVerticalSlice: 'job_card_e2e',
   supabaseUrl: 'https://pvpnaxjaacoiyyuicjzp.supabase.co',
 } as const;

@@ -34,25 +34,51 @@ export function useSessionBootstrap() {
         if (getDataMode() === 'supabase' && isSupabaseConfigured()) {
           const ctx = await resolveAppSession();
           if (!active) return;
+          if (ctx?.needsOnboarding) {
+            setContext({
+              organizationId: null,
+              branchId: null,
+              roles: [],
+              permissions: [],
+              organizationName: null,
+              memberships: [],
+              needsOnboarding: true,
+            });
+            setReady(true);
+            return;
+          }
           if (ctx) {
             setContext({
               organizationId: ctx.organizationId,
               branchId: ctx.branchId,
               roles: ctx.roles,
               permissions: ctx.permissions,
+              organizationName: ctx.organizationName,
+              memberships: ctx.memberships,
+              needsOnboarding: false,
             });
             setReady(true);
             return;
           }
         }
 
-        // Local / fallback demo context
+        // Local / fallback demo context (single-tenant device demo)
         const defaultRole: SystemRole = 'branch_manager';
         setContext({
           organizationId: DEV_ORG_ID,
           branchId: DEV_BRANCH_ID,
           roles: [defaultRole],
           permissions: permissionsForRoles([defaultRole]),
+          organizationName: 'Demo Workshop',
+          memberships: [
+            {
+              organizationId: DEV_ORG_ID,
+              branchId: DEV_BRANCH_ID,
+              organizationName: 'Demo Workshop',
+              roleId: defaultRole,
+            },
+          ],
+          needsOnboarding: false,
         });
       } catch (error) {
         console.warn('[Session] bootstrap failed, using local context', error);
@@ -62,6 +88,8 @@ export function useSessionBootstrap() {
           branchId: DEV_BRANCH_ID,
           roles: [defaultRole],
           permissions: permissionsForRoles([defaultRole]),
+          organizationName: 'Demo Workshop',
+          needsOnboarding: false,
         });
       } finally {
         if (active) setReady(true);

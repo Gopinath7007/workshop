@@ -1,7 +1,15 @@
+import { ARCHITECTURE } from '../src/config/architecture';
 import { canTransition, getAvailableTransitions } from '../src/modules/job-cards/workflow';
 import { can, permissionsForRoles } from '../src/modules/rbac/permissions';
 import { calculateGst } from '../src/utils/gst';
 import { normalizeIndianRegistration } from '../src/providers/ocr';
+
+describe('SaaS tenancy', () => {
+  it('is configured as multi-org product', () => {
+    expect(ARCHITECTURE.tenancy).toBe('multi_org_saas');
+    expect(ARCHITECTURE.backend).toBe('supabase');
+  });
+});
 
 describe('RBAC', () => {
   it('gives technicians limited permissions', () => {

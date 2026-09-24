@@ -73,6 +73,12 @@ export const STAFF_MORE_LINKS: MoreLink[] = [
     gates: ['reports.view'],
   },
   {
+    href: '/(staff)/workshop',
+    title: 'Workshop',
+    subtitle: 'Tenant, invites, switch org',
+    gates: [],
+  },
+  {
     href: '/(staff)/profile',
     title: 'Profile',
     subtitle: 'Account and password',

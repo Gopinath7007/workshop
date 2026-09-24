@@ -27,6 +27,7 @@ export default function MoreTabScreen() {
   const { canAny, roles } = usePermissions();
   const setContext = useSessionStore((s) => s.setContext);
   const organizationId = useSessionStore((s) => s.organizationId);
+  const organizationName = useSessionStore((s) => s.organizationName);
   const branchId = useSessionStore((s) => s.branchId);
   const dataMode = getDataMode();
 
@@ -41,6 +42,7 @@ export default function MoreTabScreen() {
       branchId,
       roles: [role],
       permissions: permissionsForRoles([role]),
+      organizationName,
     });
   };
 
@@ -48,10 +50,13 @@ export default function MoreTabScreen() {
     <Screen>
       <Text style={styles.title}>More</Text>
       <Text style={styles.meta}>
+        Workshop: {organizationName ?? '—'}
+      </Text>
+      <Text style={styles.meta}>
         Active role: {roles.map((r) => ROLE_LABELS[r]).join(', ') || '—'}
       </Text>
       <Text style={styles.meta}>
-        Data: {dataMode === 'supabase' ? 'Supabase Postgres' : 'Local device'}
+        Data: {dataMode === 'supabase' ? 'Supabase Postgres (tenant-isolated)' : 'Local device'}
       </Text>
       {organizationId ? (
         <Text style={styles.hint}>

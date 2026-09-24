@@ -58,6 +58,10 @@ export default function SignupScreen() {
   return (
     <Screen>
       <Text style={styles.title}>Create account</Text>
+      <Text style={styles.subtitle}>
+        After sign-in you can register your workshop or join one with an invite — each shop’s data
+        stays separate.
+      </Text>
       <TextField label="Name" value={name} onChangeText={setName} autoCapitalize="words" />
       <TextField
         label="Email"
@@ -100,6 +104,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 32,
     fontWeight: '800',
+  },
+  subtitle: {
+    color: colors.muted,
+    lineHeight: 20,
   },
   rules: {
     gap: 4,
