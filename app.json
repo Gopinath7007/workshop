@@ -12,6 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.workshop.app",
+      "buildNumber": "79",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Scan vehicle number plates for workshop job cards.",
@@ -24,6 +25,7 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "package": "com.workshop.app",
+      "versionCode": 79,
       "permissions": ["CAMERA", "READ_MEDIA_IMAGES"]
     },
     "web": {
