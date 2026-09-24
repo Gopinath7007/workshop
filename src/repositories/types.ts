@@ -82,6 +82,7 @@ export interface JobCardRepository {
 }
 
 export interface EstimateRepository {
+  list(params: ListParams & { status?: Estimate['status'] | Estimate['status'][] }): Promise<Estimate[]>;
   listByJobCard(jobCardId: string): Promise<Estimate[]>;
   getById(id: string): Promise<Estimate | null>;
   create(input: Omit<Estimate, 'id'> & { lines: unknown[] }): Promise<Estimate>;

@@ -83,6 +83,28 @@ export async function createSupabaseEstimate(input: CreateEstimateInput): Promis
 }
 
 export const supabaseEstimateRepository: EstimateRepository = {
+  async list(params) {
+    const sb = requireSupabase();
+    let query = sb
+      .from('estimates')
+      .select('*')
+      .eq('organization_id', params.organizationId)
+      .order('created_at', { ascending: false })
+      .range(params.offset ?? 0, (params.offset ?? 0) + (params.limit ?? 100) - 1);
+    if (params.branchId) query = query.eq('branch_id', params.branchId);
+    if (params.status) {
+      query = Array.isArray(params.status)
+        ? query.in('status', params.status)
+        : query.eq('status', params.status);
+    }
+    if (params.search?.trim()) {
+      query = query.ilike('estimate_number', `%${params.search.trim()}%`);
+    }
+    const { data, error } = await query;
+    throwIfError(error, 'Could not load estimates');
+    return (data ?? []).map(mapEstimate);
+  },
+
   async listByJobCard(jobCardId) {
     const sb = requireSupabase();
     const { data, error } = await sb

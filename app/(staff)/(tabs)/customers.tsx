@@ -1,19 +1,59 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { usePermissions } from '../../../src/hooks/usePermissions';
 import { useCustomers } from '../../../src/modules/customers/hooks';
+import type { Customer } from '../../../src/types';
 import { Button } from '../../../src/ui/Button';
+import { DataTable, type DataTableColumn } from '../../../src/ui/DataTable';
 import { Screen } from '../../../src/ui/Screen';
 import { TextField } from '../../../src/ui/TextField';
-import { colors, radius, space } from '../../../src/ui/theme';
+import { colors } from '../../../src/ui/theme';
 
 export default function CustomersTabScreen() {
   const router = useRouter();
   const { can } = usePermissions();
   const [search, setSearch] = useState('');
   const customersQuery = useCustomers(search);
-  const customers = customersQuery.data ?? [];
+
+  const columns = useMemo<DataTableColumn<Customer>[]>(
+    () => [
+      {
+        key: 'name',
+        title: 'Name',
+        minWidth: 180,
+        render: (row) => <Text style={styles.cellPrimary}>{row.name}</Text>,
+      },
+      {
+        key: 'mobile',
+        title: 'Mobile',
+        minWidth: 120,
+        render: (row) => <Text style={styles.cellMuted}>{row.mobile}</Text>,
+      },
+      {
+        key: 'gstin',
+        title: 'GSTIN',
+        minWidth: 140,
+        render: (row) => <Text style={styles.cellMuted}>{row.gstin ?? '—'}</Text>,
+      },
+      {
+        key: 'city',
+        title: 'City',
+        minWidth: 110,
+        render: (row) => <Text style={styles.cellMuted}>{row.city ?? '—'}</Text>,
+      },
+      {
+        key: 'due',
+        title: 'Outstanding',
+        width: 120,
+        align: 'right',
+        render: (row) => (
+          <Text style={styles.cellAccent}>₹{row.outstandingDue.toLocaleString('en-IN')}</Text>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <Screen>
@@ -30,58 +70,26 @@ export default function CustomersTabScreen() {
 
       {customersQuery.isLoading ? (
         <ActivityIndicator color={colors.accent} />
-      ) : customers.length === 0 ? (
-        <Text style={styles.empty}>No customers yet. Create a job card to add one.</Text>
       ) : (
-        <View style={styles.list}>
-          {customers.map((c) => (
-            <Pressable
-              key={c.id}
-              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-              onPress={() => router.push(`/(staff)/customers/${c.id}`)}
-            >
-              <View style={styles.rowText}>
-                <Text style={styles.rowTitle}>{c.name}</Text>
-                <Text style={styles.rowMeta}>
-                  {c.mobile}
-                  {c.gstin ? ` · ${c.gstin}` : ''}
-                </Text>
-              </View>
-              <Text style={styles.due}>
-                ₹{c.outstandingDue.toLocaleString('en-IN')}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <DataTable
+          columns={columns}
+          rows={customersQuery.data ?? []}
+          emptyMessage="No customers yet. Create a job card or add one."
+          onView={(row) => router.push(`/(staff)/customers/${row.id}`)}
+          onEdit={
+            can('customers.update')
+              ? (row) => router.push(`/(staff)/customers/${row.id}`)
+              : undefined
+          }
+        />
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  empty: {
-    color: colors.muted,
-  },
-  list: {
-    gap: space.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: space.md,
-  },
-  pressed: { opacity: 0.85 },
-  rowText: { flex: 1, gap: 2 },
-  rowTitle: { color: colors.text, fontWeight: '700' },
-  rowMeta: { color: colors.muted, fontSize: 13 },
-  due: { color: colors.accent, fontWeight: '700' },
+  title: { color: colors.text, fontSize: 28, fontWeight: '800' },
+  cellPrimary: { color: colors.text, fontWeight: '600' },
+  cellMuted: { color: colors.muted },
+  cellAccent: { color: colors.accent, fontWeight: '700' },
 });

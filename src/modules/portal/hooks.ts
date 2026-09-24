@@ -4,6 +4,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import {
   getCustomerRepository,
   getEstimateRepository,
+  getInvoiceRepository,
   getJobCardRepository,
   getVehicleRepository,
 } from '../../repositories';
@@ -15,6 +16,7 @@ export const portalKeys = {
   jobs: (customerId: string) => [...portalKeys.all, 'jobs', customerId] as const,
   estimates: (customerId: string) => [...portalKeys.all, 'estimates', customerId] as const,
   vehicles: (customerId: string) => [...portalKeys.all, 'vehicles', customerId] as const,
+  invoices: (customerId: string) => [...portalKeys.all, 'invoices', customerId] as const,
 };
 
 export function usePortalCustomer() {
@@ -104,6 +106,24 @@ export function usePortalApproveEstimate() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: portalKeys.all });
       await qc.invalidateQueries({ queryKey: jobKeys.all });
+    },
+  });
+}
+
+export function usePortalInvoices() {
+  const customerQuery = usePortalCustomer();
+  const customerId = customerQuery.data?.id;
+  const { organizationId } = usePermissions();
+
+  return useQuery({
+    queryKey: portalKeys.invoices(customerId ?? ''),
+    enabled: Boolean(customerId && organizationId),
+    queryFn: async () => {
+      const invoices = await getInvoiceRepository().list({
+        organizationId: organizationId!,
+        limit: 100,
+      });
+      return invoices.filter((inv) => inv.customerId === customerId);
     },
   });
 }

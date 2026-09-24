@@ -78,6 +78,26 @@ export async function createLocalEstimate(input: CreateEstimateInput): Promise<L
 }
 
 export const localEstimateRepository: EstimateRepository = {
+  async list(params) {
+    return withLocalDb((db) =>
+      db.estimates
+        .filter((e) => e.organizationId === params.organizationId)
+        .filter((e) => !params.branchId || e.branchId === params.branchId)
+        .filter((e) => {
+          if (!params.status) return true;
+          return Array.isArray(params.status)
+            ? params.status.includes(e.status)
+            : e.status === params.status;
+        })
+        .filter((e) => {
+          if (!params.search?.trim()) return true;
+          const q = params.search.trim().toLowerCase();
+          return e.estimateNumber.toLowerCase().includes(q) || e.jobCardId.includes(q);
+        })
+        .slice(params.offset ?? 0, (params.offset ?? 0) + (params.limit ?? 100)),
+    );
+  },
+
   async listByJobCard(jobCardId) {
     return withLocalDb((db) => db.estimates.filter((e) => e.jobCardId === jobCardId));
   },

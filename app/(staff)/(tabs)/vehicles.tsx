@@ -1,19 +1,63 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { usePermissions } from '../../../src/hooks/usePermissions';
 import { useVehicles } from '../../../src/modules/vehicles/hooks';
+import type { Vehicle } from '../../../src/types';
 import { Button } from '../../../src/ui/Button';
+import { DataTable, type DataTableColumn } from '../../../src/ui/DataTable';
 import { Screen } from '../../../src/ui/Screen';
 import { TextField } from '../../../src/ui/TextField';
-import { colors, radius, space } from '../../../src/ui/theme';
+import { colors } from '../../../src/ui/theme';
 
 export default function VehiclesTabScreen() {
   const router = useRouter();
   const { can } = usePermissions();
   const [search, setSearch] = useState('');
   const vehiclesQuery = useVehicles(search);
-  const vehicles = vehiclesQuery.data ?? [];
+
+  const columns = useMemo<DataTableColumn<Vehicle>[]>(
+    () => [
+      {
+        key: 'reg',
+        title: 'Registration',
+        minWidth: 140,
+        render: (row) => <Text style={styles.cellAccent}>{row.registrationNumber}</Text>,
+      },
+      {
+        key: 'vehicle',
+        title: 'Vehicle',
+        minWidth: 180,
+        render: (row) => (
+          <Text style={styles.cellPrimary}>
+            {[row.brand, row.model].filter(Boolean).join(' ') || row.vehicleType}
+          </Text>
+        ),
+      },
+      {
+        key: 'fuel',
+        title: 'Fuel',
+        minWidth: 90,
+        render: (row) => <Text style={styles.cellMuted}>{row.fuelType ?? '—'}</Text>,
+      },
+      {
+        key: 'year',
+        title: 'Year',
+        width: 80,
+        align: 'right',
+        render: (row) => (
+          <Text style={styles.cellMuted}>{row.manufactureYear ?? '—'}</Text>
+        ),
+      },
+      {
+        key: 'type',
+        title: 'Type',
+        minWidth: 100,
+        render: (row) => <Text style={styles.cellMuted}>{row.vehicleType}</Text>,
+      },
+    ],
+    [],
+  );
 
   return (
     <Screen>
@@ -31,53 +75,26 @@ export default function VehiclesTabScreen() {
 
       {vehiclesQuery.isLoading ? (
         <ActivityIndicator color={colors.accent} />
-      ) : vehicles.length === 0 ? (
-        <Text style={styles.empty}>No vehicles yet. Create a job card to add one.</Text>
       ) : (
-        <View style={styles.list}>
-          {vehicles.map((v) => (
-            <Pressable
-              key={v.id}
-              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-              onPress={() => router.push(`/(staff)/vehicles/${v.id}`)}
-            >
-              <View style={styles.rowText}>
-                <Text style={styles.rowTitle}>{v.registrationNumber}</Text>
-                <Text style={styles.rowMeta}>
-                  {[v.brand, v.model].filter(Boolean).join(' ') || v.vehicleType}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+        <DataTable
+          columns={columns}
+          rows={vehiclesQuery.data ?? []}
+          emptyMessage="No vehicles yet. Create a job card or add one."
+          onView={(row) => router.push(`/(staff)/vehicles/${row.id}`)}
+          onEdit={
+            can('vehicles.update')
+              ? (row) => router.push(`/(staff)/vehicles/${row.id}`)
+              : undefined
+          }
+        />
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  empty: {
-    color: colors.muted,
-  },
-  list: {
-    gap: space.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: space.md,
-  },
-  pressed: { opacity: 0.85 },
-  rowText: { flex: 1, gap: 2 },
-  rowTitle: { color: colors.text, fontWeight: '700' },
-  rowMeta: { color: colors.muted, fontSize: 13 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '800' },
+  cellPrimary: { color: colors.text, fontWeight: '600' },
+  cellMuted: { color: colors.muted },
+  cellAccent: { color: colors.accent, fontWeight: '700' },
 });

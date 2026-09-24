@@ -1,9 +1,11 @@
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { usePermissions } from '../../../src/hooks/usePermissions';
 import { useJobCards } from '../../../src/modules/job-cards/hooks';
-import type { JobCardStatus } from '../../../src/types';
+import type { JobCard, JobCardStatus } from '../../../src/types';
 import { Button } from '../../../src/ui/Button';
+import { DataTable, type DataTableColumn } from '../../../src/ui/DataTable';
 import { Screen } from '../../../src/ui/Screen';
 import { colors, radius, space } from '../../../src/ui/theme';
 
@@ -45,6 +47,51 @@ export default function JobsTabScreen() {
     {} as Record<JobCardStatus, number>,
   );
 
+  const columns = useMemo<DataTableColumn<JobCard>[]>(
+    () => [
+      {
+        key: 'number',
+        title: 'Job #',
+        minWidth: 130,
+        render: (row) => <Text style={styles.cellAccent}>{row.jobNumber}</Text>,
+      },
+      {
+        key: 'status',
+        title: 'Status',
+        minWidth: 140,
+        render: (row) => <Text style={styles.cellPrimary}>{STATUS_LABEL[row.status]}</Text>,
+      },
+      {
+        key: 'complaints',
+        title: 'Complaint',
+        minWidth: 220,
+        render: (row) => (
+          <Text style={styles.cellMuted} numberOfLines={1}>
+            {row.complaints ?? '—'}
+          </Text>
+        ),
+      },
+      {
+        key: 'est',
+        title: 'Est. cost',
+        width: 110,
+        align: 'right',
+        render: (row) => (
+          <Text style={styles.cellMuted}>₹{row.estimatedCost.toLocaleString('en-IN')}</Text>
+        ),
+      },
+      {
+        key: 'updated',
+        title: 'Updated',
+        minWidth: 110,
+        render: (row) => (
+          <Text style={styles.cellMuted}>{row.updatedAt.slice(0, 10)}</Text>
+        ),
+      },
+    ],
+    [],
+  );
+
   return (
     <Screen>
       <Text style={styles.title}>Job Cards</Text>
@@ -66,55 +113,28 @@ export default function JobsTabScreen() {
 
       {jobsQuery.isLoading ? (
         <ActivityIndicator color={colors.accent} />
-      ) : jobs.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>No open jobs yet</Text>
-          <Text style={styles.emptyBody}>Create a job card to start the vertical slice.</Text>
-        </View>
       ) : (
-        <View style={styles.list}>
-          {jobs.map((job) => (
-            <Pressable
-              key={job.id}
-              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-              onPress={() => router.push(`/(staff)/job-cards/${job.id}`)}
-            >
-              <View style={styles.rowText}>
-                <Text style={styles.rowTitle}>{job.jobNumber}</Text>
-                <Text style={styles.rowMeta}>
-                  {STATUS_LABEL[job.status]}
-                  {job.complaints ? ` · ${job.complaints.slice(0, 40)}` : ''}
-                </Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
-          ))}
-        </View>
+        <DataTable
+          columns={columns}
+          rows={jobs}
+          emptyMessage="No open jobs yet. Create a job card to start."
+          onView={(row) => router.push(`/(staff)/job-cards/${row.id}`)}
+          onEdit={
+            can('job_cards.update')
+              ? (row) => router.push(`/(staff)/job-cards/${row.id}`)
+              : undefined
+          }
+        />
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  body: {
-    color: colors.muted,
-    lineHeight: 22,
-  },
-  section: {
-    color: colors.text,
-    fontWeight: '700',
-    marginTop: space.sm,
-  },
-  pipeline: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.xs,
-  },
+  title: { color: colors.text, fontSize: 28, fontWeight: '800' },
+  body: { color: colors.muted, lineHeight: 22 },
+  section: { color: colors.text, fontWeight: '700', marginTop: space.sm },
+  pipeline: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   chip: {
     backgroundColor: colors.card,
     borderColor: colors.border,
@@ -124,61 +144,9 @@ const styles = StyleSheet.create({
     paddingVertical: space.xs,
     minWidth: 100,
   },
-  chipText: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  chipCount: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  empty: {
-    marginTop: space.md,
-    padding: space.lg,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    gap: space.xs,
-  },
-  emptyTitle: {
-    color: colors.text,
-    fontWeight: '700',
-  },
-  emptyBody: {
-    color: colors.muted,
-  },
-  list: {
-    gap: space.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: space.md,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  rowText: {
-    flex: 1,
-    gap: 2,
-  },
-  rowTitle: {
-    color: colors.text,
-    fontWeight: '700',
-  },
-  rowMeta: {
-    color: colors.muted,
-    fontSize: 13,
-  },
-  chevron: {
-    color: colors.muted,
-    fontSize: 24,
-  },
+  chipText: { color: colors.muted, fontSize: 11, fontWeight: '600' },
+  chipCount: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  cellPrimary: { color: colors.text, fontWeight: '600' },
+  cellMuted: { color: colors.muted },
+  cellAccent: { color: colors.accent, fontWeight: '700' },
 });
