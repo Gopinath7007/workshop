@@ -54,6 +54,7 @@ export function useSessionBootstrap() {
               roles: ctx.roles,
               permissions: ctx.permissions,
               organizationName: ctx.organizationName,
+              vehicleFocus: ctx.vehicleFocus,
               memberships: ctx.memberships,
               needsOnboarding: false,
             });
@@ -70,12 +71,14 @@ export function useSessionBootstrap() {
           roles: [defaultRole],
           permissions: permissionsForRoles([defaultRole]),
           organizationName: 'Demo Workshop',
+          vehicleFocus: 'both',
           memberships: [
             {
               organizationId: DEV_ORG_ID,
               branchId: DEV_BRANCH_ID,
               organizationName: 'Demo Workshop',
               roleId: defaultRole,
+              vehicleFocus: 'both',
             },
           ],
           needsOnboarding: false,
@@ -89,6 +92,7 @@ export function useSessionBootstrap() {
           roles: [defaultRole],
           permissions: permissionsForRoles([defaultRole]),
           organizationName: 'Demo Workshop',
+          vehicleFocus: 'both',
           needsOnboarding: false,
         });
       } finally {

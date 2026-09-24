@@ -1,4 +1,8 @@
 import { ARCHITECTURE } from '../src/config/architecture';
+import {
+  filterMakesForFocus,
+  filterModelsForFocus,
+} from '../src/data/indianVehicleCatalog';
 import { canTransition, getAvailableTransitions } from '../src/modules/job-cards/workflow';
 import { can, permissionsForRoles } from '../src/modules/rbac/permissions';
 import { calculateGst } from '../src/utils/gst';
@@ -8,6 +12,23 @@ describe('SaaS tenancy', () => {
   it('is configured as multi-org product', () => {
     expect(ARCHITECTURE.tenancy).toBe('multi_org_saas');
     expect(ARCHITECTURE.backend).toBe('supabase');
+  });
+});
+
+describe('Indian vehicle catalog', () => {
+  it('filters 2W vs 4W makes', () => {
+    const two = filterMakesForFocus('two_wheeler');
+    const four = filterMakesForFocus('four_wheeler');
+    expect(two.some((m) => m.name === 'Hero')).toBe(true);
+    expect(two.some((m) => m.name === 'Maruti Suzuki')).toBe(false);
+    expect(four.some((m) => m.name === 'Maruti Suzuki')).toBe(true);
+    expect(four.some((m) => m.name === 'Hero')).toBe(false);
+  });
+
+  it('lists models for a make under focus', () => {
+    const models = filterModelsForFocus('four_wheeler', 'Hyundai');
+    expect(models.map((m) => m.name)).toEqual(expect.arrayContaining(['Creta', 'Venue']));
+    expect(filterModelsForFocus('two_wheeler', 'Hyundai')).toHaveLength(0);
   });
 });
 

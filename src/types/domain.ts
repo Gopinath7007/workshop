@@ -12,6 +12,8 @@ import type {
   VehicleType,
 } from './enums';
 
+export type VehicleFocus = 'two_wheeler' | 'four_wheeler' | 'both';
+
 export type UUID = string;
 export type ISODate = string;
 export type ISODateTime = string;
@@ -30,6 +32,7 @@ export interface Organization {
   country: string;
   currency: string;
   timezone: string;
+  vehicleFocus: VehicleFocus;
   isActive: boolean;
 }
 

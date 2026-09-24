@@ -10,6 +10,7 @@ import {
 import { Button } from '../../../src/ui/Button';
 import { Screen } from '../../../src/ui/Screen';
 import { TextField } from '../../../src/ui/TextField';
+import { VehicleCatalogPicker } from '../../../src/ui/VehicleCatalogPicker';
 import { colors } from '../../../src/ui/theme';
 import { usePermissions } from '../../../src/hooks/usePermissions';
 import { Redirect } from 'expo-router';
@@ -22,6 +23,7 @@ export default function CreateJobCardScreen() {
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<CreateJobCardForm>({
     resolver: zodResolver(createJobCardSchema),
@@ -124,6 +126,15 @@ export default function CreateJobCardScreen() {
           />
         )}
       />
+
+      <VehicleCatalogPicker
+        onSelect={(sel) => {
+          setValue('brand', sel.brand);
+          setValue('model', sel.model);
+          setValue('fuelType', sel.fuelType);
+        }}
+      />
+
       <Controller
         control={control}
         name="brand"

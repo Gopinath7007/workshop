@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../src/auth';
+import type { VehicleFocus } from '../../src/types';
 import {
   acceptWorkshopInvite,
   createWorkshop,
@@ -29,6 +30,7 @@ const createSchema = z.object({
       (v) => !v || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v),
       'Invalid GSTIN',
     ),
+  vehicleFocus: z.enum(['two_wheeler', 'four_wheeler', 'both']),
 });
 
 type CreateForm = z.infer<typeof createSchema>;
@@ -44,11 +46,22 @@ export default function OnboardingScreen() {
   const {
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
-    defaultValues: { orgName: '', phone: '', city: '', state: '', gstin: '' },
+    defaultValues: {
+      orgName: '',
+      phone: '',
+      city: '',
+      state: '',
+      gstin: '',
+      vehicleFocus: 'both',
+    },
   });
+
+  const vehicleFocus = watch('vehicleFocus');
 
   const applySession = (ctx: Awaited<ReturnType<typeof createWorkshop>>) => {
     setContext({
@@ -57,6 +70,7 @@ export default function OnboardingScreen() {
       roles: ctx.roles,
       permissions: ctx.permissions,
       organizationName: ctx.organizationName,
+      vehicleFocus: ctx.vehicleFocus,
       memberships: ctx.memberships,
       needsOnboarding: false,
     });
@@ -72,6 +86,7 @@ export default function OnboardingScreen() {
         city: values.city,
         state: values.state,
         gstin: values.gstin || undefined,
+        vehicleFocus: values.vehicleFocus,
       });
       applySession(ctx);
     } catch (error) {
@@ -136,6 +151,25 @@ export default function OnboardingScreen() {
               />
             )}
           />
+
+          <Text style={styles.meta}>What do you service?</Text>
+          <View style={styles.focusRow}>
+            {(
+              [
+                ['four_wheeler', '4 Wheelers'],
+                ['two_wheeler', '2 Wheelers'],
+                ['both', 'Both'],
+              ] as Array<[VehicleFocus, string]>
+            ).map(([value, label]) => (
+              <Button
+                key={value}
+                label={label}
+                variant={vehicleFocus === value ? 'primary' : 'ghost'}
+                onPress={() => setValue('vehicleFocus', value)}
+              />
+            ))}
+          </View>
+
           <Controller
             control={control}
             name="phone"
@@ -214,4 +248,5 @@ const styles = StyleSheet.create({
   },
   panelTitle: { color: colors.text, fontWeight: '700', fontSize: 16 },
   meta: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  focusRow: { gap: space.xs },
 });

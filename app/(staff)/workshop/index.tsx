@@ -5,9 +5,10 @@ import { usePermissions } from '../../../src/hooks/usePermissions';
 import {
   createWorkshopInvite,
   setActiveWorkshop,
+  setWorkshopVehicleFocus,
 } from '../../../src/services/sessionService';
 import { useSessionStore } from '../../../src/store/sessionStore';
-import type { SystemRole } from '../../../src/types';
+import type { SystemRole, VehicleFocus } from '../../../src/types';
 import { Button } from '../../../src/ui/Button';
 import { Screen } from '../../../src/ui/Screen';
 import { colors, radius, space } from '../../../src/ui/theme';
@@ -22,11 +23,18 @@ const INVITE_ROLES: SystemRole[] = [
   'customer',
 ];
 
+const FOCUS_OPTIONS: Array<{ value: VehicleFocus; label: string }> = [
+  { value: 'four_wheeler', label: '4 Wheelers' },
+  { value: 'two_wheeler', label: '2 Wheelers' },
+  { value: 'both', label: 'Both' },
+];
+
 export default function WorkshopSettingsScreen() {
   const { can } = usePermissions();
   const organizationId = useSessionStore((s) => s.organizationId);
   const organizationName = useSessionStore((s) => s.organizationName);
   const branchId = useSessionStore((s) => s.branchId);
+  const vehicleFocus = useSessionStore((s) => s.vehicleFocus);
   const memberships = useSessionStore((s) => s.memberships);
   const setContext = useSessionStore((s) => s.setContext);
   const [inviteRole, setInviteRole] = useState<SystemRole>('service_advisor');
@@ -46,6 +54,28 @@ export default function WorkshopSettingsScreen() {
     }
   };
 
+  const saveFocus = async (focus: VehicleFocus) => {
+    setBusy(true);
+    try {
+      const next = await setWorkshopVehicleFocus(focus);
+      setContext({
+        organizationId,
+        branchId,
+        roles: useSessionStore.getState().roles,
+        permissions: useSessionStore.getState().permissions,
+        organizationName,
+        vehicleFocus: next,
+        memberships,
+        needsOnboarding: false,
+      });
+      Alert.alert('Saved', `Catalog will show ${FOCUS_OPTIONS.find((f) => f.value === next)?.label}`);
+    } catch (error) {
+      Alert.alert('Update failed', error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const switchOrg = async (orgId: string, nextBranchId: string | null) => {
     setBusy(true);
     try {
@@ -56,6 +86,7 @@ export default function WorkshopSettingsScreen() {
         roles: ctx.roles,
         permissions: ctx.permissions,
         organizationName: ctx.organizationName,
+        vehicleFocus: ctx.vehicleFocus,
         memberships: ctx.memberships,
         needsOnboarding: false,
       });
@@ -80,6 +111,25 @@ export default function WorkshopSettingsScreen() {
         <Text style={styles.meta}>Branch {branchId ?? '—'}</Text>
       </View>
 
+      {can('settings.manage') ? (
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>Vehicle catalog focus</Text>
+          <Text style={styles.meta}>
+            4-wheeler shops load cars/SUVs; 2-wheeler shops load bikes/scooters when selecting make
+            & model.
+          </Text>
+          {FOCUS_OPTIONS.map((opt) => (
+            <Button
+              key={opt.value}
+              label={opt.label}
+              variant={vehicleFocus === opt.value ? 'primary' : 'ghost'}
+              onPress={() => void saveFocus(opt.value)}
+              disabled={busy}
+            />
+          ))}
+        </View>
+      ) : null}
+
       {can('rbac.manage') ? (
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>Invite staff</Text>
@@ -98,9 +148,7 @@ export default function WorkshopSettingsScreen() {
             ))}
           </View>
           <Button label="Generate invite code" onPress={() => void generateInvite()} loading={busy} />
-          {lastCode ? (
-            <Text style={styles.code}>Code: {lastCode}</Text>
-          ) : null}
+          {lastCode ? <Text style={styles.code}>Code: {lastCode}</Text> : null}
         </View>
       ) : null}
 

@@ -2,7 +2,7 @@ import { permissionsForRoles } from '../modules/rbac/permissions';
 import { getDataMode } from '../repositories';
 import { requireSupabase, throwIfError } from '../repositories/supabase/client';
 import type { WorkshopMembership } from '../store/sessionStore';
-import type { PermissionId, SessionContext, SystemRole } from '../types';
+import type { PermissionId, SessionContext, SystemRole, VehicleFocus } from '../types';
 
 export type CreateWorkshopInput = {
   orgName: string;
@@ -12,10 +12,12 @@ export type CreateWorkshopInput = {
   city?: string;
   state?: string;
   billingEmail?: string;
+  vehicleFocus?: VehicleFocus;
 };
 
 export type WorkshopSession = SessionContext & {
   organizationName: string | null;
+  vehicleFocus: VehicleFocus;
   memberships: WorkshopMembership[];
   needsOnboarding: boolean;
 };
@@ -34,17 +36,26 @@ async function loadMemberships(userId: string): Promise<WorkshopMembership[]> {
   const orgIds = [...new Set(roles.map((r) => r.organization_id as string))];
   const { data: orgs, error: orgError } = await sb
     .from('organizations')
-    .select('id, name')
+    .select('id, name, vehicle_focus')
     .in('id', orgIds);
   throwIfError(orgError, 'Could not load workshops');
 
-  const nameById = new Map((orgs ?? []).map((o) => [o.id as string, o.name as string]));
+  const orgById = new Map(
+    (orgs ?? []).map((o) => [
+      o.id as string,
+      {
+        name: o.name as string,
+        vehicleFocus: (o.vehicle_focus as VehicleFocus | null) ?? 'both',
+      },
+    ]),
+  );
 
   return roles.map((r) => ({
     organizationId: r.organization_id as string,
     branchId: (r.branch_id as string | null) ?? null,
-    organizationName: nameById.get(r.organization_id as string) ?? 'Workshop',
+    organizationName: orgById.get(r.organization_id as string)?.name ?? 'Workshop',
     roleId: r.role_id as SystemRole,
+    vehicleFocus: orgById.get(r.organization_id as string)?.vehicleFocus ?? 'both',
   }));
 }
 
@@ -86,6 +97,7 @@ export async function loadSessionContext(): Promise<WorkshopSession | null> {
       roles: [],
       permissions: [],
       organizationName: null,
+      vehicleFocus: 'both',
       memberships: [],
       needsOnboarding: true,
     };
@@ -109,6 +121,7 @@ export async function loadSessionContext(): Promise<WorkshopSession | null> {
     roles: systemRoles,
     permissions: permissionsForRoles(systemRoles),
     organizationName: primary.organizationName,
+    vehicleFocus: primary.vehicleFocus ?? 'both',
     memberships,
     needsOnboarding: false,
   };
@@ -125,14 +138,17 @@ export async function createWorkshop(input: CreateWorkshopInput): Promise<Worksh
     p_city: input.city ?? null,
     p_state: input.state ?? null,
     p_billing_email: input.billingEmail ?? null,
+    p_vehicle_focus: input.vehicleFocus ?? 'both',
   });
   throwIfError(error, 'Could not create workshop');
   const row = data as {
     organization_id: string;
     branch_id: string;
     role_id: string;
+    vehicle_focus?: string;
   };
   const systemRoles: SystemRole[] = [row.role_id as SystemRole];
+  const focus = (row.vehicle_focus as VehicleFocus | undefined) ?? input.vehicleFocus ?? 'both';
   return {
     userId: (await sb.auth.getUser()).data.user!.id,
     organizationId: row.organization_id,
@@ -140,12 +156,14 @@ export async function createWorkshop(input: CreateWorkshopInput): Promise<Worksh
     roles: systemRoles,
     permissions: permissionsForRoles(systemRoles),
     organizationName: input.orgName,
+    vehicleFocus: focus,
     memberships: [
       {
         organizationId: row.organization_id,
         branchId: row.branch_id,
         organizationName: input.orgName,
         roleId: row.role_id as SystemRole,
+        vehicleFocus: focus,
       },
     ],
     needsOnboarding: false,
@@ -195,6 +213,15 @@ export async function setActiveWorkshop(
   const ctx = await loadSessionContext();
   if (!ctx || ctx.needsOnboarding) throw new Error('Switch failed');
   return ctx;
+}
+
+export async function setWorkshopVehicleFocus(focus: VehicleFocus): Promise<VehicleFocus> {
+  if (getDataMode() !== 'supabase') return focus;
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc('set_workshop_vehicle_focus', { p_focus: focus });
+  throwIfError(error, 'Could not update vehicle focus');
+  const row = data as { vehicle_focus: string };
+  return (row.vehicle_focus as VehicleFocus) ?? focus;
 }
 
 /** @deprecated Prefer createWorkshop; kept for older clients. */

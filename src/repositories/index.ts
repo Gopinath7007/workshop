@@ -21,6 +21,7 @@ import {
   type PartStockRow,
 } from './local/inventoryRepository';
 import { localVehicleRepository } from './local/vehicleRepository';
+import { localVehicleCatalogRepository } from './local/vehicleCatalogRepository';
 import { supabaseCustomerRepository } from './supabase/customerRepository';
 import {
   createSupabaseEstimate,
@@ -51,6 +52,7 @@ import {
   supabaseAttendanceSummary,
 } from './supabase/hrRepository';
 import { supabaseVehicleRepository } from './supabase/vehicleRepository';
+import { supabaseVehicleCatalogRepository } from './supabase/vehicleCatalogRepository';
 import type { CreateEstimateInput } from './local/estimateRepository';
 import type { CreateEmployeeInput } from './local/hrRepository';
 import {
@@ -85,6 +87,12 @@ export function getCustomerRepository(): CustomerRepository {
 
 export function getVehicleRepository(): VehicleRepository {
   return getDataMode() === 'supabase' ? supabaseVehicleRepository : localVehicleRepository;
+}
+
+export function getVehicleCatalogRepository() {
+  return getDataMode() === 'supabase'
+    ? supabaseVehicleCatalogRepository
+    : localVehicleCatalogRepository;
 }
 
 export function getJobCardRepository(): JobCardRepository {

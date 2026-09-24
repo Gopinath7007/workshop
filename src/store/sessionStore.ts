@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { PermissionId, SystemRole } from '../types';
+import type { PermissionId, SystemRole, VehicleFocus } from '../types';
 import { can, permissionsForRoles } from '../modules/rbac/permissions';
 
 export type WorkshopMembership = {
@@ -7,12 +7,14 @@ export type WorkshopMembership = {
   branchId: string | null;
   organizationName: string;
   roleId: SystemRole;
+  vehicleFocus?: VehicleFocus;
 };
 
 type SessionState = {
   organizationId: string | null;
   branchId: string | null;
   organizationName: string | null;
+  vehicleFocus: VehicleFocus;
   memberships: WorkshopMembership[];
   roles: SystemRole[];
   permissions: PermissionId[];
@@ -23,6 +25,7 @@ type SessionState = {
     roles: SystemRole[];
     permissions: PermissionId[];
     organizationName?: string | null;
+    vehicleFocus?: VehicleFocus;
     memberships?: WorkshopMembership[];
     needsOnboarding?: boolean;
   }) => void;
@@ -35,6 +38,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   organizationId: null,
   branchId: null,
   organizationName: null,
+  vehicleFocus: 'both',
   memberships: [],
   roles: [],
   permissions: [],
@@ -44,6 +48,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       organizationId: ctx.organizationId ?? null,
       branchId: ctx.branchId ?? null,
       organizationName: ctx.organizationName ?? null,
+      vehicleFocus: ctx.vehicleFocus ?? get().vehicleFocus,
       memberships: ctx.memberships ?? get().memberships,
       roles: ctx.roles,
       permissions: ctx.permissions,
@@ -59,6 +64,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       organizationId: null,
       branchId: null,
       organizationName: null,
+      vehicleFocus: 'both',
       memberships: [],
       roles: [],
       permissions: [],

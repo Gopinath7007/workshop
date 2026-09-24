@@ -18,6 +18,7 @@ import {
 import { Button } from '../../../src/ui/Button';
 import { Screen } from '../../../src/ui/Screen';
 import { TextField } from '../../../src/ui/TextField';
+import { VehicleCatalogPicker } from '../../../src/ui/VehicleCatalogPicker';
 import { colors, radius, space } from '../../../src/ui/theme';
 
 export default function CreateVehicleScreen() {
@@ -198,6 +199,16 @@ export default function CreateVehicleScreen() {
           />
         )}
       />
+
+      <VehicleCatalogPicker
+        onSelect={(sel) => {
+          setValue('brand', sel.brand);
+          setValue('model', sel.model);
+          setValue('fuelType', sel.fuelType);
+          setValue('vehicleType', sel.vehicleType);
+        }}
+      />
+
       <Controller
         control={control}
         name="brand"
@@ -217,6 +228,18 @@ export default function CreateVehicleScreen() {
         name="fuelType"
         render={({ field: { value, onChange } }) => (
           <TextField label="Fuel type" value={value ?? ''} onChangeText={onChange} />
+        )}
+      />
+      <Controller
+        control={control}
+        name="vehicleType"
+        render={({ field: { value, onChange } }) => (
+          <TextField
+            label="Vehicle type"
+            value={value ?? ''}
+            onChangeText={onChange}
+            placeholder="car / suv / bike / scooter"
+          />
         )}
       />
       <Controller
