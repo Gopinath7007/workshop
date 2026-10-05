@@ -249,6 +249,35 @@ export interface AttendanceRecord {
   overtimeMinutes: number;
 }
 
+export type PayrollStatus = 'draft' | 'processing' | 'paid' | 'cancelled';
+
+export interface SalarySlip {
+  id: UUID;
+  payrollRunId: UUID;
+  employeeId: UUID;
+  basic: number;
+  incentives: number;
+  overtimeAmount: number;
+  bonus: number;
+  deductions: number;
+  pfEmployee: number;
+  pfEmployer: number;
+  esiEmployee: number;
+  esiEmployer: number;
+  netPay: number;
+}
+
+export interface PayrollRun {
+  id: UUID;
+  organizationId: UUID;
+  branchId: UUID | null;
+  periodYear: number;
+  periodMonth: number;
+  status: PayrollStatus;
+  processedAt?: ISODateTime | null;
+  slips: SalarySlip[];
+}
+
 export interface DocumentAsset {
   id: UUID;
   organizationId: UUID;

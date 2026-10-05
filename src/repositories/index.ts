@@ -63,6 +63,21 @@ import {
   listEmployees as listLocalEmployees,
   markAttendance as markLocalAttendance,
 } from './local/hrRepository';
+import {
+  getPayrollRun as getLocalPayrollRun,
+  listMonthAttendance as listLocalMonthAttendance,
+  markPayrollPaid as markLocalPayrollPaid,
+  savePayrollRun as saveLocalPayrollRun,
+  type PayrollPeriod,
+  type SavePayrollRunInput,
+  type SlipInput,
+} from './local/payrollRepository';
+import {
+  getSupabasePayrollRun,
+  listSupabaseMonthAttendance,
+  markSupabasePayrollPaid,
+  saveSupabasePayrollRun,
+} from './supabase/payrollRepository';
 import type {
   CustomerRepository,
   EstimateRepository,
@@ -216,6 +231,24 @@ export async function attendanceSummary(branchId: string, date?: string) {
     : localAttendanceSummary(branchId, date);
 }
 
+export async function listMonthAttendance(period: Pick<PayrollPeriod, 'branchId' | 'year' | 'month'>) {
+  return getDataMode() === 'supabase'
+    ? listSupabaseMonthAttendance(period)
+    : listLocalMonthAttendance(period);
+}
+
+export async function getPayrollRun(period: PayrollPeriod) {
+  return getDataMode() === 'supabase' ? getSupabasePayrollRun(period) : getLocalPayrollRun(period);
+}
+
+export async function savePayrollRun(input: SavePayrollRunInput) {
+  return getDataMode() === 'supabase' ? saveSupabasePayrollRun(input) : saveLocalPayrollRun(input);
+}
+
+export async function markPayrollPaid(runId: string) {
+  return getDataMode() === 'supabase' ? markSupabasePayrollPaid(runId) : markLocalPayrollPaid(runId);
+}
+
 export { resetLocalDb } from './local/storage';
 export { createLocalEstimate, getLocalEstimate } from './local/estimateRepository';
-export type { CreateEmployeeInput };
+export type { CreateEmployeeInput, PayrollPeriod, SavePayrollRunInput, SlipInput };

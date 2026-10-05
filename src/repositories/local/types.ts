@@ -10,6 +10,7 @@
   JobCardStatus,
   Part,
   Payment,
+  PayrollRun,
   Vehicle,
 } from '../../types';
 
@@ -58,6 +59,7 @@ export type LocalDb = {
   stockMovements: LocalStockMovement[];
   employees: Employee[];
   attendance: AttendanceRecord[];
+  payrollRuns: PayrollRun[];
   counters: {
     job: number;
     estimate: number;
@@ -83,6 +85,7 @@ export function emptyLocalDb(): LocalDb {
     stockMovements: [],
     employees: [],
     attendance: [],
+    payrollRuns: [],
     counters: { job: 0, estimate: 0, invoice: 0, part: 0, employee: 0 },
     seededDemoInventory: false,
     seededDemoEmployees: false,
@@ -108,6 +111,7 @@ export function hydrateLocalDb(raw: Partial<LocalDb> | null | undefined): LocalD
     stockMovements: raw.stockMovements ?? [],
     employees: raw.employees ?? [],
     attendance: raw.attendance ?? [],
+    payrollRuns: raw.payrollRuns ?? [],
     seededDemoInventory: Boolean(raw.seededDemoInventory),
     seededDemoEmployees: Boolean(raw.seededDemoEmployees),
   };
