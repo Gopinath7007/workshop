@@ -43,6 +43,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
+    width: '100%',
+    maxWidth: 1280,
+    alignSelf: 'center',
     padding: space.lg,
     gap: space.md,
   },

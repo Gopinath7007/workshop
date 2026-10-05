@@ -80,25 +80,24 @@ export function DataTable<T extends { id: string }>({
 
   return (
     <View style={styles.tableWrap}>
-      <ScrollView horizontal showsHorizontalScrollIndicator>
-        <View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.tableInner}>
           <View style={styles.headerRow}>
             {columns.map((col) => (
               <View
                 key={col.key}
-                style={[
-                  styles.headerCell,
-                  col.width != null ? { width: col.width } : null,
-                  col.minWidth != null ? { minWidth: col.minWidth } : { minWidth: 120 },
-                  col.flex != null ? { flex: col.flex } : null,
-                ]}
+                style={[styles.headerCell, columnStyle(col), alignStyle(col.align)]}
               >
-                <Text style={[styles.headerText, alignStyle(col.align)]}>{col.title}</Text>
+                <Text style={[styles.headerText, textAlignStyle(col.align)]}>{col.title}</Text>
               </View>
             ))}
             {showActions ? (
-              <View style={[styles.headerCell, { width: actionWidth }]}>
-                <Text style={[styles.headerText, styles.alignCenter]}>Actions</Text>
+              <View style={[styles.headerCell, styles.alignCenter, { width: actionWidth }]}>
+                <Text style={[styles.headerText, textAlignStyle('center')]}>Actions</Text>
               </View>
             ) : null}
           </View>
@@ -120,14 +119,9 @@ export function DataTable<T extends { id: string }>({
                 {columns.map((col) => (
                   <View
                     key={col.key}
-                    style={[
-                      styles.bodyCell,
-                      col.width != null ? { width: col.width } : null,
-                      col.minWidth != null ? { minWidth: col.minWidth } : { minWidth: 120 },
-                      col.flex != null ? { flex: col.flex } : null,
-                    ]}
+                    style={[styles.bodyCell, columnStyle(col), alignStyle(col.align)]}
                   >
-                    <View style={alignStyle(col.align)}>{col.render(row)}</View>
+                    {col.render(row)}
                   </View>
                 ))}
                 {showActions ? (
@@ -147,6 +141,16 @@ export function DataTable<T extends { id: string }>({
       </ScrollView>
     </View>
   );
+}
+
+/** Columns start at their declared width and share any spare space, so the table spans the full container. */
+function columnStyle<T>(col: DataTableColumn<T>) {
+  const basis = col.width ?? col.minWidth ?? 120;
+  return { flexBasis: basis, minWidth: basis, flexGrow: col.flex ?? 1, flexShrink: 0 };
+}
+
+function textAlignStyle(align?: 'left' | 'right' | 'center') {
+  return { textAlign: align ?? 'left' } as const;
 }
 
 function alignStyle(align?: 'left' | 'right' | 'center') {
@@ -184,6 +188,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     overflow: 'hidden',
   },
+  scrollContent: { flexGrow: 1 },
+  tableInner: { flexGrow: 1 },
   headerRow: {
     flexDirection: 'row',
     backgroundColor: colors.field,
@@ -191,8 +197,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   headerCell: {
-    paddingHorizontal: space.sm,
-    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm + 2,
     justifyContent: 'center',
   },
   headerText: {
@@ -216,9 +222,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(248, 113, 113, 0.08)',
   },
   bodyCell: {
-    paddingHorizontal: space.sm,
+    paddingHorizontal: space.md,
     paddingVertical: space.sm,
     justifyContent: 'center',
+    alignSelf: 'stretch',
   },
   actionsCell: {
     flexDirection: 'row',
